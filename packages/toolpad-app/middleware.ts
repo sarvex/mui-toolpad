@@ -1,13 +1,43 @@
+import 'urlpattern-polyfill';
 import { NextRequest, NextResponse } from 'next/server';
 import config from './src/server/config';
 
-const BASIC_AUTH_WHITELIST = new Set(['/health-check']);
+interface ToolpadMiddlewareNext {
+  (): Promise<Response>;
+}
 
-export function middleware(req: NextRequest) {
-  const { pathname } = new URL(req.url);
+interface ToolpadMiddleware {
+  (req: NextRequest, next: ToolpadMiddlewareNext): Promise<Response>;
+}
 
-  if (!config.basicAuthUser || BASIC_AUTH_WHITELIST.has(pathname)) {
-    return NextResponse.next();
+const PUBLIC_URLS = [
+  new URLPattern({ pathname: '/_next/static/:path*' }),
+  new URLPattern({ pathname: '/health-check' }),
+];
+
+function matchAny(patterns: URLPattern[], input: URLPatternInit | string): URLPatternResult | null {
+  // eslint-disable-next-line no-restricted-syntax
+  for (const pattern of patterns) {
+    const match = pattern.exec(input);
+    if (match) {
+      return match;
+    }
+  }
+  return null;
+}
+
+async function basicAuthMiddleware(
+  req: NextRequest,
+  next: ToolpadMiddlewareNext,
+): Promise<Response> {
+  if (matchAny(PUBLIC_URLS, req.url)) {
+    return next();
+  }
+
+  const match = new URLPattern({ pathname: '/deploy/:appId/:path*' }).exec(req.url);
+  if (match) {
+    const { appId } = match.pathname.groups;
+    console.log(req.url, appId);
   }
 
   const basicAuth = req.headers.get('authorization');
@@ -17,7 +47,7 @@ export function middleware(req: NextRequest) {
     const [user, pwd] = atob(auth).toString().split(':');
 
     if (user === config.basicAuthUser && pwd === config.basicAuthPassword) {
-      return NextResponse.next();
+      return next();
     }
   }
 
@@ -27,4 +57,22 @@ export function middleware(req: NextRequest) {
       'WWW-Authenticate': 'Basic realm="Secure Area"',
     },
   });
+}
+
+/**
+ * Helper that allows chaining Next.js middlewares similar to express
+ */
+async function callMiddlewares(chain: ToolpadMiddleware[], req: NextRequest): Promise<Response> {
+  const [first, ...rest] = chain;
+  const next = async () => {
+    if (rest.length > 0) {
+      return callMiddlewares(rest, req);
+    }
+    return NextResponse.next();
+  };
+  return first(req, next);
+}
+
+export async function middleware(req: NextRequest): Promise<Response> {
+  return callMiddlewares([basicAuthMiddleware], req);
 }
