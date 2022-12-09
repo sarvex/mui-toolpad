@@ -842,30 +842,36 @@ function RenderedPage({ nodeId }: RenderedNodeProps) {
 
 interface RenderedPagesProps {
   dom: appDom.AppDom;
+  version: VersionOrPreview;
 }
 
-function RenderedPages({ dom }: RenderedPagesProps) {
+function RenderedPages({ dom, version }: RenderedPagesProps) {
   const root = appDom.getApp(dom);
   const { pages = [] } = appDom.getChildNodes(dom, root);
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate replace to="/pages" />} />
-      <Route path="/pages" element={<AppOverview dom={dom} />} />
-      {pages.map((page) => (
-        <Route
-          key={page.id}
-          path={`/pages/${page.id}`}
-          element={
-            <RenderedPage
-              nodeId={page.id}
-              // Make sure the page itself mounts when the route changes. This make sure all pageBindings are reinitialized
-              // during first render. Fixes https://github.com/mui/mui-toolpad/issues/1050
-              key={page.id}
-            />
-          }
-        />
-      ))}
+      <Route
+        path="/"
+        element={<Navigate replace to={pages.length > 0 ? `/pages/${pages[0].id}` : '/pages'} />}
+      />
+      <Route path="/pages" element={<AppOverview dom={dom} version={version} />}>
+        {pages.map((page) => (
+          <Route
+            key={page.id}
+            index
+            path={`/pages/${page.id}`}
+            element={
+              <RenderedPage
+                nodeId={page.id}
+                // Make sure the page itself mounts when the route changes. This make sure all pageBindings are reinitialized
+                // during first render. Fixes https://github.com/mui/mui-toolpad/issues/1050
+                key={page.id}
+              />
+            }
+          />
+        ))}
+      </Route>
     </Routes>
   );
 }
@@ -904,19 +910,12 @@ const queryClient = new QueryClient({
 
 export interface ToolpadAppProps {
   rootRef?: React.Ref<HTMLDivElement>;
-  hidePreviewBanner?: boolean;
   basename: string;
   version: VersionOrPreview;
   state: RuntimeState;
 }
 
-export default function ToolpadApp({
-  rootRef,
-  basename,
-  version,
-  hidePreviewBanner,
-  state,
-}: ToolpadAppProps) {
+export default function ToolpadApp({ rootRef, basename, version, state }: ToolpadAppProps) {
   const { appId, dom } = state;
   const appContext = React.useMemo(() => ({ appId, version }), [appId, version]);
 
@@ -936,9 +935,6 @@ export default function ToolpadApp({
         <DomContextProvider value={dom}>
           <AppThemeProvider dom={dom}>
             <CssBaseline enableColorScheme />
-            {version === 'preview' && !hidePreviewBanner ? (
-              <Alert severity="info">This is a preview version of the application.</Alert>
-            ) : null}
             <ErrorBoundary FallbackComponent={AppError}>
               <ResetNodeErrorsKeyProvider value={resetNodeErrorsKey}>
                 <React.Suspense fallback={<AppLoading />}>
@@ -947,7 +943,7 @@ export default function ToolpadApp({
                       <AppContextProvider value={appContext}>
                         <QueryClientProvider client={queryClient}>
                           <BrowserRouter basename={basename}>
-                            <RenderedPages dom={dom} />
+                            <RenderedPages dom={dom} version={version} />
                           </BrowserRouter>
                           {showDevtools ? (
                             <ReactQueryDevtoolsProduction initialIsOpen={false} />

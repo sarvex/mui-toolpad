@@ -4,6 +4,7 @@ import invariant from 'invariant';
 import { throttle } from 'lodash-es';
 import { RuntimeEvent } from '@mui/toolpad-core';
 import ToolpadApp from '../runtime';
+
 import { NodeHashes, PageViewState, RuntimeState } from '../types';
 import getPageViewState from './getPageViewState';
 import { rectContainsPoint } from '../utils/geometry';
@@ -132,7 +133,6 @@ export default function AppCanvas({ basename }: AppCanvasProps) {
     <CanvasHooksContext.Provider value={editorHooks}>
       <ToolpadApp
         rootRef={onAppRoot}
-        hidePreviewBanner
         version="preview"
         basename={`${basename}/${state.appId}`}
         state={state}
