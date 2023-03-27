@@ -14,6 +14,8 @@ test('must load page in initial URL without altering URL', async ({ page }) => {
 
   await page.goto(`/_toolpad/app/pages/g433ywb?abcd=123`);
 
+  await page.waitForURL(`/_toolpad/app/pages/g433ywb?abcd=123`);
+
   await editorModel.pageRoot.waitFor();
 
   const pageButton2 = editorModel.appCanvas.getByRole('button', {
