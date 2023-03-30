@@ -1,16 +1,17 @@
 import { NextApiHandler } from 'next';
 import type { IncomingMessage, ServerResponse } from 'http';
 import superjson from 'superjson';
+import chalk from 'chalk';
 import { execQuery, dataSourceFetchPrivate, loadDom, saveDom } from '../../src/server/data';
 import { getLatestToolpadRelease } from '../../src/server/getLatestRelease';
 import { hasOwnProperty } from '../../src/utils/collections';
 import { errorFrom, serializeError } from '../../src/utils/errors';
-import logger from '../../src/server/logs/logger';
 import {
   createComponent,
   getDomFingerprint,
   openCodeComponentEditor,
 } from '../../src/server/localMode';
+import { indent } from '../../src/utils/strings';
 
 export interface Method<P extends any[] = any[], R = any> {
   (...params: P): Promise<R>;
@@ -82,16 +83,17 @@ function createRpcHandler(definition: Definition): NextApiHandler<RpcResponse> {
 
     res.json(responseData);
 
-    const logLevel = error ? 'warn' : 'trace';
-    logger[logLevel](
-      {
-        key: 'rpc',
-        type,
-        name,
-        error,
-      },
-      'Handled RPC request',
-    );
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.log(`${chalk.red('error')} - RPC error`);
+      if (error.stack) {
+        // eslint-disable-next-line no-console
+        console.log(indent(error.stack, 2));
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(indent(`${error.name}: ${error.message}`, 2));
+      }
+    }
   };
 }
 
