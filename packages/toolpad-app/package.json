@@ -116,7 +116,7 @@
     "react-split-pane": "0.1.92",
     "semver": "7.5.4",
     "serialize-javascript": "6.0.1",
-    "ses": "0.18.4",
+    "ses": "0.18.7",
     "superjson": "1.12.4",
     "typescript": "5.1.6",
     "vite": "4.4.2",
