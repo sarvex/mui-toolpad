@@ -93,7 +93,7 @@
     "lodash-es": "4.17.21",
     "markdown-to-jsx": "7.2.1",
     "mime": "3.0.0",
-    "mysql2": "3.5.0",
+    "mysql2": "3.9.7",
     "nanoid": "4.0.2",
     "next": "13.4.9",
     "node-fetch": "2.6.12",
